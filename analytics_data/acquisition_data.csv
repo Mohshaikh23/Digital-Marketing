@@ -1,0 +1,47 @@
+date,sessionSource,sessionMedium,sessions,totalUsers
+20250216,(direct),(none),5,4
+20250303,(direct),(none),5,3
+20250310,(direct),(none),5,5
+20250312,google,organic,5,2
+20250222,google,organic,4,2
+20250228,google,organic,4,2
+20250305,(direct),(none),4,4
+20250220,(direct),(none),3,3
+20250227,(direct),(none),3,3
+20250308,google,organic,3,2
+20250217,facebook.com,referral,2,2
+20250221,(direct),(none),2,2
+20250222,(direct),(none),2,2
+20250228,(direct),(none),2,1
+20250301,(direct),(none),2,2
+20250306,google,organic,2,1
+20250308,(direct),(none),2,2
+20250311,(direct),(none),2,2
+20250318,facebook.com,referral,2,2
+20250215,(direct),(none),1,1
+20250218,(direct),(none),1,1
+20250218,google,organic,1,1
+20250219,(direct),(none),1,1
+20250220,(not set),(not set),1,1
+20250221,(not set),(not set),1,1
+20250221,facebook.com,referral,1,1
+20250221,google,organic,1,1
+20250224,google,organic,1,1
+20250225,(direct),(none),1,1
+20250225,facebook.com,referral,1,1
+20250226,(direct),(none),1,1
+20250301,facebook.com,referral,1,1
+20250303,google,organic,1,1
+20250304,(direct),(none),1,1
+20250304,facebook.com,referral,1,1
+20250308,facebook.com,referral,1,1
+20250310,google,organic,1,1
+20250311,facebook.com,referral,1,1
+20250311,google,organic,1,1
+20250313,google,organic,1,1
+20250315,facebook.com,referral,1,1
+20250315,google,organic,1,1
+20250315,linkedin.com,referral,1,1
+20250317,(direct),(none),1,1
+20250319,(direct),(none),1,1
+20250319,(not set),(not set),1,1

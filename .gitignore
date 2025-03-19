@@ -172,4 +172,11 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
-"proefficient-data-entry-194479023ae8.json" 
+
+proefficient-data-entry-194479023ae8.json
+credentials.json
+# Ignore environment files
+.env
+config.json
+service_account.json
+token.json

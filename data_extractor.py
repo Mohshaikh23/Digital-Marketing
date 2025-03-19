@@ -18,6 +18,7 @@ from googleapiclient.discovery import build
 from google.oauth2 import service_account
 import requests
 import logging
+import json
 from datetime import datetime
 
 # Configure logging to show only ERROR messages
@@ -26,11 +27,13 @@ logging.basicConfig(level=logging.ERROR, format="%(asctime)s - %(levelname)s - %
 # Define the scopes for Google Search Console API
 SCOPES = ['https://www.googleapis.com/auth/webmasters.readonly', 'https://www.googleapis.com/auth/analytics.readonly']
 
-# Path to your service account JSON key file
-KEY_FILE_LOCATION = "proefficient-data-entry-194479023ae8.json"
+credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
-# Initialize the client
-client = BetaAnalyticsDataClient.from_service_account_file(KEY_FILE_LOCATION)
+if credentials_path and os.path.exists(credentials_path):
+    client = BetaAnalyticsDataClient.from_service_account_file(credentials_path)
+else:
+    raise FileNotFoundError("⚠️ Service account JSON file not found. Set the GOOGLE_APPLICATION_CREDENTIALS environment variable.")
+
 
 # Path to your service account JSON key file
 SERVICE_ACCOUNT_FILE = 'proefficient-data-entry-194479023ae8.json'
@@ -49,11 +52,18 @@ creds = service_account.Credentials.from_service_account_file(
 # Initialize the client
 def initialize_client():
     try:
-        client = BetaAnalyticsDataClient.from_service_account_file(KEY_FILE_LOCATION)
+        # Load credentials from Streamlit Secrets
+        credentials_info = st.secrets["google"]["credentials"]
+        credentials_dict = json.loads(credentials_info)
+        creds = service_account.Credentials.from_service_account_info(credentials_dict)
+
+        # Initialize Google Analytics Client
+        client = BetaAnalyticsDataClient(credentials=creds)
         return client
     except Exception as e:
-        print(f"Failed to initialize client: {e}")
+        print(f"⚠️ Failed to initialize client: {e}")
         return None
+
 
 # Function to authenticate and get credentials
 def authenticate_google_apis():

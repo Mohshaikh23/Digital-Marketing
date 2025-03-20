@@ -61,9 +61,8 @@ def initialize_client():
         client = BetaAnalyticsDataClient(credentials=creds)
         return client
     except Exception as e:
-        print(f"⚠️ Failed to initialize client: {e}")
+        st.error(f"⚠️ Failed to initialize Google Analytics client: {e}")
         return None
-
 
 # Function to authenticate and get credentials
 def authenticate_google_apis():

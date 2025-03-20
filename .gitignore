@@ -179,3 +179,4 @@ credentials.json
 config.json
 service_account.json
 token.json
+linkedIn_data_extractor.py

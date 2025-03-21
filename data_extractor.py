@@ -35,8 +35,8 @@ else:
     raise FileNotFoundError("⚠️ Service account JSON file not found. Set the GOOGLE_APPLICATION_CREDENTIALS environment variable.")
 
 
-# Path to your service account JSON key file
-SERVICE_ACCOUNT_FILE = 'proefficient-data-entry-194479023ae8.json'
+# # Path to your service account JSON key file
+# SERVICE_ACCOUNT_FILE = 'proefficient-data-entry-194479023ae8.json'
 
 # Google Analytics Property ID (e.g., 'properties/123456789')
 PROPERTY_ID = "properties/477624929"
@@ -45,9 +45,9 @@ PROPERTY_ID = "properties/477624929"
 OUTPUT_DIR = "analytics_data"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# Authenticate using the service account
-creds = service_account.Credentials.from_service_account_file(
-    SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+# # Authenticate using the service account
+# creds = service_account.Credentials.from_service_account_file(
+#     SERVICE_ACCOUNT_FILE, scopes=SCOPES)
 
 # Initialize the client
 def initialize_client():
@@ -63,6 +63,14 @@ def initialize_client():
     except Exception as e:
         st.error(f"⚠️ Failed to initialize Google Analytics client: {e}")
         return None
+
+creds = service_account.Credentials.from_service_account_info(json.loads(st.secrets["google"]["credentials"]))
+
+# Debugging: Check if secrets are accessible
+if "google" in st.secrets and "credentials" in st.secrets["google"]:
+    st.write("✅ Streamlit Secrets are available.")
+else:
+    st.error("❌ Streamlit Secrets are missing or not set properly.")
 
 # Function to authenticate and get credentials
 def authenticate_google_apis():

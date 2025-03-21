@@ -27,13 +27,12 @@ logging.basicConfig(level=logging.ERROR, format="%(asctime)s - %(levelname)s - %
 # Define the scopes for Google Search Console API
 SCOPES = ['https://www.googleapis.com/auth/webmasters.readonly', 'https://www.googleapis.com/auth/analytics.readonly']
 
-credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+# credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
-if credentials_path and os.path.exists(credentials_path):
-    client = BetaAnalyticsDataClient.from_service_account_file(credentials_path)
-else:
-    raise FileNotFoundError("⚠️ Service account JSON file not found. Set the GOOGLE_APPLICATION_CREDENTIALS environment variable.")
-
+# if credentials_path and os.path.exists(credentials_path):
+#     client = BetaAnalyticsDataClient.from_service_account_file(credentials_path)
+# else:
+#     raise FileNotFoundError("⚠️ Service account JSON file not found. Set the GOOGLE_APPLICATION_CREDENTIALS environment variable.")
 
 # # Path to your service account JSON key file
 # SERVICE_ACCOUNT_FILE = 'proefficient-data-entry-194479023ae8.json'
@@ -70,7 +69,6 @@ def initialize_client():
     except Exception as e:
         st.error(f"⚠️ Failed to initialize Google Analytics client: {e}")
         return None
-
 
 creds = service_account.Credentials.from_service_account_info(json.loads(st.secrets["google"]["credentials"]))
 

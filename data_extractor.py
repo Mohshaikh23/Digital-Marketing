@@ -52,17 +52,25 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 # Initialize the client
 def initialize_client():
     try:
-        # Load credentials from Streamlit Secrets
+        # ✅ Debugging: Check if Streamlit Secrets are available
+        if "google" not in st.secrets or "credentials" not in st.secrets["google"]:
+            raise ValueError("❌ Streamlit Secrets are missing. Ensure they are set in Streamlit Cloud.")
+
         credentials_info = st.secrets["google"]["credentials"]
         credentials_dict = json.loads(credentials_info)
-        creds = service_account.Credentials.from_service_account_info(credentials_dict)
 
-        # Initialize Google Analytics Client
+        # ✅ Debugging: Print project ID to verify credentials loaded correctly
+        st.write(f"✅ Project ID: {credentials_dict.get('project_id', 'Not found')}")
+
+        creds = service_account.Credentials.from_service_account_info(credentials_dict)
         client = BetaAnalyticsDataClient(credentials=creds)
+
+        st.success("✅ Google Analytics Client Initialized Successfully!")
         return client
     except Exception as e:
         st.error(f"⚠️ Failed to initialize Google Analytics client: {e}")
         return None
+
 
 creds = service_account.Credentials.from_service_account_info(json.loads(st.secrets["google"]["credentials"]))
 

@@ -1,6 +1,8 @@
 # dashboard.py
-import pandas as pd
 import streamlit as st
+st.set_page_config(page_title="Digital Marketing & SEO Dashboard", layout="wide")
+
+import pandas as pd
 import plotly.express as px
 from datetime import datetime, timedelta
 from data_extractor import main as refresh_data
@@ -10,8 +12,6 @@ import plotly.express as px
 from data_extractor import load_linkedin_excel_data
 from streamlit_calendar import calendar
 
-# Set page title and layout (MUST BE THE FIRST STREAMLIT COMMAND)
-st.set_page_config(page_title="Digital Marketing & SEO Dashboard", layout="wide")
 
 # Load data from CSV files and convert date format
 def load_data(filename):

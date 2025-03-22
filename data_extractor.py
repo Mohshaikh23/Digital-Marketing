@@ -126,6 +126,7 @@ def authenticate_google_apis():
                 "auth_uri": google_secrets["auth_uri"],
                 "token_uri": google_secrets["token_uri"],
                 "auth_provider_x509_cert_url": google_secrets["auth_provider_x509_cert_url"],
+                "redirect_uris": ["https://pro-efficient-data-entry.streamlit.app/"]  # Add this line
             }
         }
     else:

@@ -1,3 +1,5 @@
+from github import Github
+import base64
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.analytics.data_v1beta.types import (
     DateRange,
@@ -47,6 +49,34 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 # # Authenticate using the service account
 # creds = service_account.Credentials.from_service_account_file(
 #     SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+
+def push_to_github(repo_name, file_path, file_content, commit_message, github_token):
+    """
+    Push a file to a GitHub repository.
+    
+    :param repo_name: Name of the repository (e.g., "Mohshaikh23/Digital-Marketing")
+    :param file_path: Path to the file in the repository (e.g., "analytics_data/user_traffic_data.csv")
+    :param file_content: Content of the file to be pushed
+    :param commit_message: Commit message
+    :param github_token: GitHub personal access token
+    """
+    try:
+        # Initialize GitHub instance
+        g = Github(github_token)
+        repo = g.get_repo(repo_name)
+        
+        # Check if the file already exists
+        try:
+            file = repo.get_contents(file_path)
+            # If the file exists, update it
+            repo.update_file(file_path, commit_message, file_content, file.sha)
+        except:
+            # If the file does not exist, create it
+            repo.create_file(file_path, commit_message, file_content)
+        
+        print(f"Successfully pushed {file_path} to GitHub.")
+    except Exception as e:
+        print(f"Failed to push {file_path} to GitHub: {e}")
 
 # Initialize the client
 def initialize_client():
@@ -178,12 +208,30 @@ def authenticate_google_search_console():
     return creds
 
 # Function to save data to a file
-def save_data(data, filename):
+def save_data(data, filename, github_token=None):
+    """
+    Save data to a local file and optionally push it to GitHub.
+    
+    :param data: DataFrame to save
+    :param filename: Name of the file to save
+    :param github_token: GitHub personal access token (optional)
+    """
     if data is not None and not data.empty:
-        data.to_csv(os.path.join(OUTPUT_DIR, filename), index=False)
-        print(f"Data saved to {filename}")
+        # Save data locally
+        local_path = os.path.join(OUTPUT_DIR, filename)
+        data.to_csv(local_path, index=False)
+        print(f"Data saved to {local_path}")
+        
+        # Push to GitHub if token is provided
+        if github_token:
+            repo_name = "Mohshaikh23/Digital-Marketing"
+            file_path = f"analytics_data/{filename}"
+            with open(local_path, "r") as file:
+                file_content = file.read()
+            push_to_github(repo_name, file_path, file_content, f"Update {filename}", github_token)
     else:
         print(f"No data to save for {filename}.")
+
 
 def fetch_data(client, dimensions, metrics, date_ranges, filename):
     try:
@@ -250,6 +298,10 @@ def load_linkedin_excel_data(filename):
 
 # Main function to fetch and save all data
 def main():
+
+    # Initialize GitHub token (replace with your actual token or use an environment variable)
+    github_token = os.getenv("GITHUB_TOKEN")  # Replace with your GitHub token
+
     client = initialize_client()
     if not client:
         return
@@ -272,7 +324,7 @@ def main():
         date_ranges=date_ranges,
         filename="user_traffic_data.csv"
     )
-    save_data(user_traffic_data, "user_traffic_data.csv")
+    save_data(user_traffic_data, "user_traffic_data.csv",github_token)
 
     # 2. User Engagement & Behavior (Daily)
     logging.info("Fetching User Engagement & Behavior Data (Daily)...")
@@ -283,7 +335,7 @@ def main():
         date_ranges=date_ranges,
         filename="engagement_data.csv"
     )
-    save_data(engagement_data, "engagement_data.csv")
+    save_data(engagement_data, "engagement_data.csv",github_token)
 
     # 3. Acquisition Data (Daily)
     logging.info("Fetching Acquisition Data (Daily)...")
@@ -294,7 +346,7 @@ def main():
         date_ranges=date_ranges,
         filename="acquisition_data.csv"
     )
-    save_data(acquisition_data, "acquisition_data.csv")
+    save_data(acquisition_data, "acquisition_data.csv",github_token)
 
     # 4. Conversion & Goal Tracking (Daily)
     logging.info("Fetching Conversion & Goal Tracking Data (Daily)...")
@@ -305,7 +357,7 @@ def main():
         date_ranges=date_ranges,
         filename="conversion_data.csv"
     )
-    save_data(conversion_data, "conversion_data.csv")
+    save_data(conversion_data, "conversion_data.csv",github_token)
 
     # 5. Page Views Data (Daily)
     logging.info("Fetching Page Views Data (Daily)...")
@@ -316,7 +368,7 @@ def main():
         date_ranges=date_ranges,
         filename="page_views_data.csv"
     )
-    save_data(page_views_data, "page_views_data.csv")
+    save_data(page_views_data, "page_views_data.csv",github_token)
 
     # 6. Demographics Data (Daily)
     logging.info("Fetching Demographics Data (Daily)...")
@@ -327,7 +379,7 @@ def main():
         date_ranges=date_ranges,
         filename="demographics_data.csv"
     )
-    save_data(demographics_data, "demographics_data.csv")
+    save_data(demographics_data, "demographics_data.csv",github_token)
 
     # 7. Device & Technology Data (Daily)
     logging.info("Fetching Device & Technology Data (Daily)...")
@@ -338,7 +390,7 @@ def main():
         date_ranges=date_ranges,
         filename="device_data.csv"
     )
-    save_data(device_data, "device_data.csv")
+    save_data(device_data, "device_data.csv",github_token)
 
     # 8. Events Data (Daily)
     logging.info("Fetching Events Data (Daily)...")
@@ -349,7 +401,7 @@ def main():
         date_ranges=date_ranges,
         filename="events_data.csv"
     )
-    save_data(events_data, "events_data.csv")
+    save_data(events_data, "events_data.csv",github_token)
 
     # 9. E-commerce Data (Daily)
     logging.info("Fetching E-commerce Data (Daily)...")
@@ -360,7 +412,7 @@ def main():
         date_ranges=date_ranges,
         filename="ecommerce_data.csv"
     )
-    save_data(ecommerce_data, "ecommerce_data.csv")
+    save_data(ecommerce_data, "ecommerce_data.csv",github_token)
 
     # 10. User Lifetime Value (LTV) Data (Daily)
     logging.info("Fetching User Lifetime Value Data (Daily)...")
@@ -371,7 +423,7 @@ def main():
         date_ranges=date_ranges,
         filename="ltv_data.csv"
     )
-    save_data(ltv_data, "ltv_data.csv")
+    save_data(ltv_data, "ltv_data.csv",github_token)
 
     # 11. Audience & Segments Data (Daily)
     logging.info("Fetching Audience & Segments Data (Daily)...")
@@ -382,7 +434,7 @@ def main():
         date_ranges=date_ranges,
         filename="audience_data.csv"
     )
-    save_data(audience_data, "audience_data.csv")
+    save_data(audience_data, "audience_data.csv",github_token)
 
     # 12. App-Specific Data (Daily)
     logging.info("Fetching App-Specific Data (Daily)...")
@@ -393,7 +445,7 @@ def main():
         date_ranges=date_ranges,
         filename="app_data.csv"
     )
-    save_data(app_data, "app_data.csv")
+    save_data(app_data, "app_data.csv",github_token)
 
 
     # 13. Funnel Analysis Data (Daily)
@@ -405,7 +457,7 @@ def main():
         date_ranges=date_ranges,
         filename="funnel_data.csv"
     )
-    save_data(funnel_data, "funnel_data.csv")
+    save_data(funnel_data, "funnel_data.csv",github_token)
 
     # 14. Retention & Cohorts Data (Daily)
     logging.info("Fetching Retention & Cohorts Data (Daily)...")
@@ -416,7 +468,7 @@ def main():
         date_ranges=date_ranges,
         filename="retention_data.csv"
     )
-    save_data(retention_data, "retention_data.csv")
+    save_data(retention_data, "retention_data.csv",github_token)
 
     # 15. Site Speed & Performance Data (Daily)
     logging.info("Fetching Site Speed & Performance Data (Daily)...")
@@ -427,7 +479,7 @@ def main():
         date_ranges=date_ranges,
         filename="site_speed_data.csv"
     )
-    save_data(site_speed_data, "site_speed_data.csv")
+    save_data(site_speed_data, "site_speed_data.csv",github_token)
 
 
     # 16. Error Tracking Data (Daily)
@@ -439,7 +491,7 @@ def main():
         date_ranges=date_ranges,
         filename="error_data.csv"
     )
-    save_data(error_data, "error_data.csv")
+    save_data(error_data, "error_data.csv",github_token)
 
     # 17. Google Search Console Data (Daily)
     logging.info("Fetching Google Search Console Data (Daily)...")

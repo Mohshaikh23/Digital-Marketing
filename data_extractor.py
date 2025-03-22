@@ -19,7 +19,7 @@ from google.oauth2 import service_account
 import requests
 import logging
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Configure logging to show only ERROR messages
 logging.basicConfig(level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -258,7 +258,7 @@ def main():
     site_url = 'https://proefficientdataentry.com/'  # Replace with your website URL
     property_id = PROPERTY_ID  # Replace with your GA4 property ID
     start_date = '2025-02-10'  # Replace with your start date
-    end_date = 'today'  # Replace with your end date
+    end_date = datetime.today().strftime('%Y-%m-%d')
 
     # Define date ranges starting from February 10, 2025
     date_ranges = [("2025-02-10", "today")]
@@ -446,7 +446,7 @@ def main():
     creds = authenticate_google_search_console()
     site_url = 'https://proefficientdataentry.com/'  # Replace with your website URL
     start_date = '2025-02-10'  # Replace with your start date
-    end_date = 'today'  # Replace with your end date
+    end_date = datetime.today().strftime('%Y-%m-%d')
 
     # Fetch search analytics data
     search_console_data = fetch_search_console_data(creds, site_url, start_date, end_date)

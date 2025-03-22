@@ -112,6 +112,7 @@ else:
 def authenticate_google_apis():
     """
     Authenticate with Google APIs using credentials from Streamlit Secrets.
+    Persists and reuses OAuth credentials to avoid manual authorization on every run.
     """
     creds = None
 
@@ -126,30 +127,33 @@ def authenticate_google_apis():
                 "auth_uri": google_secrets["auth_uri"],
                 "token_uri": google_secrets["token_uri"],
                 "auth_provider_x509_cert_url": google_secrets["auth_provider_x509_cert_url"],
-                "redirect_uris": ["https://pro-efficient-data-entry.streamlit.app/"]  # Add this line
+                "redirect_uris": ["https://your-app-name.streamlit.app/"]  # Replace with your Streamlit app URL
             }
         }
     else:
         raise ValueError("Google API credentials not found in Streamlit Secrets.")
 
     # The file token.json stores the user's access and refresh tokens
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    token_file = "token.json"
+    if os.path.exists(token_file):
+        creds = Credentials.from_authorized_user_file(token_file, SCOPES)
 
     # If there are no valid credentials, prompt the user to log in
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
+            # Refresh the token if it has expired
             creds.refresh(Request())
         else:
-            # Use the console flow for headless environments
+            # Use the web-based flow for Streamlit Cloud
             flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
             auth_url, _ = flow.authorization_url(prompt='consent')
-            print(f"Please go to this URL and authorize the application: {auth_url}")
-            auth_code = input("Enter the authorization code: ")
-            creds = flow.fetch_token(code=auth_code)
+            st.write(f"Please go to this URL and authorize the application: {auth_url}")
+            auth_code = st.text_input("Enter the authorization code:")
+            if auth_code:
+                creds = flow.fetch_token(code=auth_code)
         
         # Save the credentials for the next run
-        with open('token.json', 'w') as token:
+        with open(token_file, 'w') as token:
             token.write(creds.to_json())
 
     return creds

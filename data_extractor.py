@@ -110,17 +110,43 @@ else:
 
 # Function to authenticate and get credentials
 def authenticate_google_apis():
+    """
+    Authenticate with Google APIs using credentials from Streamlit Secrets.
+    """
     creds = None
+
+    # Load credentials from Streamlit Secrets
+    if "google" in st.secrets:
+        google_secrets = st.secrets["google"]
+        client_config = {
+            "web": {
+                "client_id": google_secrets["client_id"],
+                "client_secret": google_secrets["client_secret"],
+                "project_id": google_secrets["project_id"],
+                "auth_uri": google_secrets["auth_uri"],
+                "token_uri": google_secrets["token_uri"],
+                "auth_provider_x509_cert_url": google_secrets["auth_provider_x509_cert_url"],
+            }
+        }
+    else:
+        raise ValueError("Google API credentials not found in Streamlit Secrets.")
+
+    # The file token.json stores the user's access and refresh tokens
     if os.path.exists('token.json'):
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+
+    # If there are no valid credentials, prompt the user to log in
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+            flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
             creds = flow.run_local_server(port=8080)
+        
+        # Save the credentials for the next run
         with open('token.json', 'w') as token:
             token.write(creds.to_json())
+
     return creds
 
 # Function to fetch data from Google Search Console

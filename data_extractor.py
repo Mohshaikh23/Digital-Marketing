@@ -140,8 +140,12 @@ def authenticate_google_apis():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
+            # Use the console flow for headless environments
             flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
-            creds = flow.run_local_server(port=8080)
+            auth_url, _ = flow.authorization_url(prompt='consent')
+            print(f"Please go to this URL and authorize the application: {auth_url}")
+            auth_code = input("Enter the authorization code: ")
+            creds = flow.fetch_token(code=auth_code)
         
         # Save the credentials for the next run
         with open('token.json', 'w') as token:

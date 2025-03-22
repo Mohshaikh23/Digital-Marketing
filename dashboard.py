@@ -17,16 +17,18 @@ from streamlit_calendar import calendar
 def load_data(filename):
     try:
         data = pd.read_csv(filename)
-        
-        # Convert 'date' column to datetime format (YYYYMMDD -> YYYY-MM-DD)
         if 'date' in data.columns:
             data['date'] = pd.to_datetime(data['date'], format='%Y%m%d')
-        
         if data.empty:
-            return None  # Return None for empty files without showing a warning
+            print(f"Warning: The file {filename} is empty.")
+            return None
         return data
+    except FileNotFoundError:
+        print(f"Error: The file {filename} was not found.")
+        return None
     except Exception as e:
-        return None  # Return None for missing or invalid files without showing an error
+        print(f"Error loading data from {filename}: {e}")
+        return None
 
 # Function to calculate week-over-week (WoW) and month-over-month (MoM) growth
 def calculate_growth(data, metric):

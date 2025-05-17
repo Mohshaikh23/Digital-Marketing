@@ -1,53 +1,111 @@
-# dashboard.py
 import streamlit as st
 st.set_page_config(page_title="Digital Marketing & SEO Dashboard", layout="wide")
 
+import statsmodels.api as sm
 import pandas as pd
 import plotly.express as px
 from datetime import datetime, timedelta
-from data_extractor import main as refresh_data
 import requests
 import json
 import plotly.express as px
-from data_extractor import load_linkedin_excel_data
 from streamlit_calendar import calendar
+from data_loader import (
+    connect_to_google_sheets,
+    load_sheet_data,
+    validate_data,
+    filter_data_by_date,
+    load_social_media_data_from_sheet,
+    load_linkedin_data,
+    load_facebook_data,
+    load_instagram_data,
+    calculate_growth,
+    calculate_delta,
+    calculate_post_metrics
+)
+import numpy as np
+from data_extractor import refresh_data
+from sklearn.linear_model import LinearRegression
 
 
-# Load data from CSV files and convert date format
-def load_data(filename):
-    try:
-        data = pd.read_csv(filename)
-        if 'date' in data.columns:
-            data['date'] = pd.to_datetime(data['date'], format='%Y%m%d')
-        if data.empty:
-            print(f"Warning: The file {filename} is empty.")
-            return None
-        return data
-    except FileNotFoundError:
-        print(f"Error: The file {filename} was not found.")
-        return None
-    except Exception as e:
-        print(f"Error loading data from {filename}: {e}")
-        return None
-
-# Function to calculate week-over-week (WoW) and month-over-month (MoM) growth
-def calculate_growth(data, metric):
-    if data is None or data.empty:
-        return None
+# Complete worksheet name mapping with alternatives
+WORKSHEET_MAPPING = {
+    # SEO/GA4 Data
+    "user_traffic": {
+        "primary": "user_traffic",
+        "alternatives": [],
+        "required_cols": ["date", "totalUsers", "activeUsers", "sessions", "bounceRate"]
+    },
+    "engagement": {
+        "primary": "engagement", 
+        "alternatives": [],
+        "required_cols": ["date", "averageSessionDuration", "screenPageViewsPerSession", "eventCount"]
+    },
+    "acquisition": {
+        "primary": "acquisition",
+        "alternatives": [],
+        "required_cols": ["date", "sessionSource", "sessionMedium", "sessions", "totalUsers"]
+    },
+    "page_views": {
+        "primary": "page_views",
+        "alternatives": [],
+        "required_cols": ["date", "pageTitle", "screenPageViews", "screenPageViewsPerSession"]
+    },
+    "demographics": {
+        "primary": "demographics",
+        "alternatives": [],
+        "required_cols": ["date", "country", "activeUsers","userAgeBracket", "userGender"]
+    },
+    "device": {
+        "primary": "technology",
+        "alternatives": [],
+        "required_cols": ["date", "deviceCategory", "operatingSystem", "browser"]
+    },
+    "events": {
+        "primary": "events",
+        "alternatives": [],
+        "required_cols": ["date", "eventName", "eventCount"]
+    },
+    "site_speed": {
+        "primary": "site_speed",
+        "alternatives": [],
+        "required_cols": ["date", "pagePath", "averageSessionDuration"]
+    },
+     "audience": {
+        "primary": "audience",
+        "alternatives": ["audience_segments", "user_segments"],
+        "required_cols": ["audienceName", "activeUsers", "conversions"]
+    },
     
-    # Calculate WoW growth
-    data['WoW Growth'] = data[metric].pct_change(periods=7) * 100
     
-    # Calculate MoM growth
-    data['MoM Growth'] = data[metric].pct_change(periods=30) * 100
-    
-    return data
+    # SEO Data
+    "search_console": {
+        "primary": "seo_top_queries",
+        "alternatives": [],
+        "required_cols": ["clicks", "impressions", "position", "ctr"]
+    },
+    "seo_pages": {
+        "primary": "seo_top_pages",
+        "alternatives": [],
+        "required_cols": ["clicks", "impressions", "position"]
+    },
+    "seo_content": {
+        "primary": "seo_content_engagement",
+        "alternatives": [],
+        "required_cols": ["screenPageViews", "engagementRate"]
+    },
+    "organic_search": {
+        "primary": "organic_search",
+        "alternatives": [],
+        "required_cols": ["date", "firstUserSource", "firstUserMedium", "sessions"]
+    },
+    "landing_pages": {
+        "primary": "seo_landing_pages",
+        "alternatives": [],
+        "required_cols": ["date", "landingPage", "sessionSource", "sessions"]
+    }
+}
 
-# Function to calculate delta values for metrics
-def calculate_delta(current_value, previous_value):
-    if previous_value == 0:
-        return 0
-    return ((current_value - previous_value) / previous_value) * 100
+
 
 # Function to display a metric with a colored delta
 def display_metric(label, value, delta_value):
@@ -82,70 +140,6 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# Function to filter data based on date range
-def filter_data_by_date(data, start_date, end_date):
-    if data is None or data.empty:
-        return data
-    # Convert start_date and end_date to pandas.Timestamp
-    start_date = pd.to_datetime(start_date)
-    end_date = pd.to_datetime(end_date)
-    return data[(data['date'] >= start_date) & (data['date'] <= end_date)]
-
-# Add this function to load social media data
-def load_social_media_data(filename):
-    try:
-        data = pd.read_excel(filename)
-        if data.empty:
-            print(f"Warning: The file {filename} is empty.")
-            return None
-        return data
-    except Exception as e:
-        print(f"Error loading data from {filename}: {e}")
-        return None
-
-def load_linkedin_data():
-    try:
-        # Load LinkedIn posts
-        with open("linkedin_posts.json", "r") as f:
-            linkedin_posts = json.load(f)
-
-        # Load LinkedIn engagement metrics
-        with open("linkedin_engagement_metrics.json", "r") as f:
-            linkedin_engagement_metrics = json.load(f)
-
-        return linkedin_posts, linkedin_engagement_metrics
-    except Exception as e:
-        print(f"Error loading LinkedIn data: {e}")
-        return None, None
-
-
-def load_facebook_data(filename):
-    try:
-        # Load Facebook data from CSV file
-        facebook_data = pd.read_csv(filename)
-
-        # Rename "Reactions" column to "Likes" for consistency in the dashboard
-        if "Reactions" in facebook_data.columns:
-            facebook_data.rename(columns={"Reactions": "Likes"}, inplace=True)
-
-        # Convert 'Publish time' to datetime format
-        if "Publish time" in facebook_data.columns:
-            facebook_data["Publish time"] = pd.to_datetime(facebook_data["Publish time"], errors='coerce')
-
-        return facebook_data
-    except Exception as e:
-        print(f"Error loading Facebook data: {e}")
-        return None
-
-
-def load_instagram_data(filename):
-    try:
-        # Load Instagram data from CSV file
-        instagram_data = pd.read_csv(filename)
-        return instagram_data
-    except Exception as e:
-        print(f"Error loading Instagram data: {e}")
-        return None
 
 def show_social_media_calendar(facebook_data, instagram_data, linkedin_posts):
     # Initialize an empty list to store events
@@ -372,87 +366,582 @@ def page_acquisition(acquisition_data):
 
 # Page 3: Page Views
 def page_page_views(page_views_data):
-    st.title("📄 Page Views")
-    st.markdown("This page shows the most viewed pages on your website.")
+    st.title("📄 Page Views Analysis")
+    st.markdown("""
+        This page provides comprehensive insights into your website's page performance, 
+        including traffic patterns, engagement metrics, and content effectiveness.
+    """)
 
-    if page_views_data is not None and not page_views_data.empty:
-        # Top 10 Pages by Views
-        st.subheader("Top 10 Pages by Views")
-        top_pages = page_views_data.groupby("pageTitle")["screenPageViews"].sum().nlargest(10).reset_index()
-        fig = px.bar(top_pages, x="pageTitle", y="screenPageViews", title="Top 10 Pages by Views")
+    if page_views_data is None or page_views_data.empty:
+        st.warning("No page views data available.")
+        return
+
+    # Check available columns
+    available_cols = page_views_data.columns.tolist()
+    
+    # 1. Top Pages Overview
+    st.header("🚀 Top Performing Pages")
+    
+    # Determine time period for comparison
+    if "date" in available_cols:
+        page_views_data["date"] = pd.to_datetime(page_views_data["date"])
+        min_date = page_views_data["date"].min()
+        max_date = page_views_data["date"].max()
+        time_period = (max_date - min_date).days
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            total_views = page_views_data["screenPageViews"].sum()
+            display_metric("Total Page Views", f"{total_views:,}", 0)
+            
+        with col2:
+            avg_views_per_day = total_views / time_period if time_period > 0 else 0
+            display_metric("Avg Views/Day", f"{avg_views_per_day:,.1f}", 0)
+            
+        with col3:
+            unique_pages = page_views_data["pageTitle"].nunique()
+            display_metric("Unique Pages", unique_pages, 0)
+    
+    # 2. Top Pages Analysis
+    st.subheader("📊 Page Performance Metrics")
+    
+    # Group by page and calculate metrics
+    page_stats = page_views_data.groupby("pageTitle").agg({
+        "screenPageViews": ["sum", "mean", "std"],
+        "screenPageViewsPerSession": ["mean", "median"]
+    }).reset_index()
+    
+    # Flatten multi-index columns
+    page_stats.columns = ['_'.join(col).strip() if col[1] else col[0] 
+                         for col in page_stats.columns.values]
+    
+    # Rename columns for clarity
+    page_stats = page_stats.rename(columns={
+        "screenPageViews_sum": "total_views",
+        "screenPageViews_mean": "avg_daily_views",
+        "screenPageViews_std": "views_std_dev",
+        "screenPageViewsPerSession_mean": "avg_views_per_session",
+        "screenPageViewsPerSession_median": "median_views_per_session"
+    })
+    
+    # Display top pages in tabs
+    tab1, tab2, tab3 = st.tabs(["By Total Views", "By Engagement", "Raw Data"])
+    
+    with tab1:
+        st.subheader("Top 10 Pages by Total Views")
+        top_pages = page_stats.sort_values("total_views", ascending=False).head(10)
+        fig = px.bar(top_pages, x="pageTitle", y="total_views", 
+                     color="total_views", title="Top Pages by Total Views")
         st.plotly_chart(fig, use_container_width=True)
+        
+        # Show consistency of top performers
+        st.subheader("View Consistency of Top Pages")
+        fig = px.scatter(top_pages, x="avg_daily_views", y="views_std_dev",
+                         size="total_views", hover_name="pageTitle",
+                         title="Daily View Consistency (Size = Total Views)")
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with tab2:
+        st.subheader("Top 10 Pages by Engagement")
+        engaged_pages = page_stats.sort_values("avg_views_per_session", ascending=False).head(10)
+        fig = px.bar(engaged_pages, x="pageTitle", y="avg_views_per_session", 
+                     color="avg_views_per_session", title="Top Pages by Views Per Session")
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Show relationship between views and engagement
+        st.subheader("Views vs Engagement")
+        fig = px.scatter(page_stats, x="total_views", y="avg_views_per_session",
+                         hover_name="pageTitle", trendline="ols",
+                         title="Total Views vs Views Per Session")
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with tab3:
+        st.subheader("All Page Metrics")
+        st.dataframe(page_stats.sort_values("total_views", ascending=False))
+    
+    # 3. Time-Based Analysis (if date available)
+    if "date" in available_cols:
+        st.header("⏱ Time-Based Patterns")
+        
+        # Convert date to datetime if not already
+        page_views_data["date"] = pd.to_datetime(page_views_data["date"])
+        
+        # Weekly patterns
+        page_views_data["week"] = page_views_data["date"].dt.to_period("W").astype(str)
+        weekly_views = page_views_data.groupby("week")["screenPageViews"].sum().reset_index()
+        
+        # Calculate week-over-week growth
+        weekly_views["wow_growth"] = weekly_views["screenPageViews"].pct_change() * 100
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.subheader("Weekly Page View Trends")
+            fig = px.line(weekly_views, x="week", y="screenPageViews", 
+                          title="Total Page Views by Week")
+            st.plotly_chart(fig, use_container_width=True)
+            
+        with col2:
+            st.subheader("Week-over-Week Growth")
+            fig = px.bar(weekly_views, x="week", y="wow_growth", 
+                          title="Weekly Growth Rate (%)")
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # Daily patterns
+        page_views_data["day_of_week"] = page_views_data["date"].dt.day_name()
+        daily_pattern = page_views_data.groupby("day_of_week")["screenPageViews"].sum().reset_index()
+        
+        # Order days properly
+        day_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        daily_pattern["day_of_week"] = pd.Categorical(daily_pattern["day_of_week"], categories=day_order, ordered=True)
+        daily_pattern = daily_pattern.sort_values("day_of_week")
+        
+        st.subheader("Page Views by Day of Week")
+        fig = px.bar(daily_pattern, x="day_of_week", y="screenPageViews",
+                     title="Page View Distribution by Weekday")
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # 4. Page Trajectory Analysis
+        st.header("📈 Page Performance Trajectories")
+        
+        # Get top 5 pages by total views
+        top_5_pages = page_stats.sort_values("total_views", ascending=False).head(5)["pageTitle"].tolist()
+        
+        # Filter data for top pages
+        top_pages_data = page_views_data[page_views_data["pageTitle"].isin(top_5_pages)]
+        
+        # Calculate cumulative views
+        top_pages_data = top_pages_data.sort_values("date")
+        top_pages_data["cumulative_views"] = top_pages_data.groupby("pageTitle")["screenPageViews"].cumsum()
+        
+        # Plot cumulative growth
+        st.subheader("Cumulative Views Growth - Top 5 Pages")
+        fig = px.line(top_pages_data, x="date", y="cumulative_views", color="pageTitle",
+                      title="Cumulative Page Views Over Time")
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Plot daily views for top pages
+        st.subheader("Daily Views - Top 5 Pages")
+        fig = px.line(top_pages_data, x="date", y="screenPageViews", color="pageTitle",
+                      title="Daily Page Views for Top Performing Pages")
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # 5. Page Path Analysis (if available)
+    if "pagePath" in available_cols:
+        st.header("🌐 Page Path Analysis")
+        
+        # Extract section from path (e.g., /blog/ -> blog)
+        page_views_data["section"] = page_views_data["pagePath"].str.split("/").str[1].fillna("home")
+        
+        # Group by section
+        section_stats = page_views_data.groupby("section").agg({
+            "screenPageViews": "sum",
+            "screenPageViewsPerSession": "mean"
+        }).reset_index()
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.subheader("Views by Website Section")
+            fig = px.pie(section_stats, values="screenPageViews", names="section",
+                         title="Page View Distribution by Website Section")
+            st.plotly_chart(fig, use_container_width=True)
+            
+        with col2:
+            st.subheader("Engagement by Section")
+            fig = px.bar(section_stats.sort_values("screenPageViewsPerSession", ascending=False),
+                         x="section", y="screenPageViewsPerSession",
+                         title="Average Views Per Session by Section")
+            st.plotly_chart(fig, use_container_width=True)
+    
+    # 6. Page Performance Clustering
+    st.header("🔍 Page Performance Segmentation")
+    
+    # Create performance segments
+    if "total_views" in page_stats.columns and "avg_views_per_session" in page_stats.columns:
+        # Normalize metrics for clustering
+        page_stats["views_percentile"] = page_stats["total_views"].rank(pct=True) * 100
+        page_stats["engagement_percentile"] = page_stats["avg_views_per_session"].rank(pct=True) * 100
+        
+        # Create segments
+        conditions = [
+            (page_stats["views_percentile"] >= 75) & (page_stats["engagement_percentile"] >= 75),
+            (page_stats["views_percentile"] >= 75) & (page_stats["engagement_percentile"] < 75),
+            (page_stats["views_percentile"] < 75) & (page_stats["engagement_percentile"] >= 75),
+            (page_stats["views_percentile"] < 75) & (page_stats["engagement_percentile"] < 75)
+        ]
+        segments = ["High Views & Engagement", "High Views", "High Engagement", "Low Performance"]
+        page_stats["segment"] = np.select(conditions, segments, default="Other")
+        
+        # Visualize segments
+        st.subheader("Page Performance Matrix")
+        fig = px.scatter(page_stats, x="views_percentile", y="engagement_percentile",
+                         color="segment", hover_name="pageTitle",
+                         title="Page Performance Segmentation\n(X: Views Percentile, Y: Engagement Percentile)")
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Show segment statistics
+        st.subheader("Segment Breakdown")
+        segment_stats = page_stats.groupby("segment").agg({
+            "pageTitle": "count",
+            "total_views": "sum",
+            "avg_views_per_session": "mean"
+        }).reset_index()
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write("Number of Pages by Segment")
+            fig = px.pie(segment_stats, values="pageTitle", names="segment",
+                         title="Page Count by Segment")
+            st.plotly_chart(fig, use_container_width=True)
+            
+        with col2:
+            st.write("Traffic Share by Segment")
+            fig = px.pie(segment_stats, values="total_views", names="segment",
+                         title="Traffic Distribution by Segment")
+            st.plotly_chart(fig, use_container_width=True)
 
 # Page 4: Demographics
 def page_demographics(demographics_data):
-    st.title("👥 Demographics")
-    st.markdown("This page shows the demographic breakdown of your users.")
-
-    if demographics_data is not None and not demographics_data.empty:
-        # Group by age bracket and gender
-        st.subheader("Active Users by Age Bracket")
-        age_data = demographics_data.groupby("userAgeBracket")["activeUsers"].sum().reset_index()
-        fig = px.bar(age_data, x="userAgeBracket", y="activeUsers", title="Active Users by Age Bracket")
-        st.plotly_chart(fig, use_container_width=True)
-
-        st.subheader("Active Users by Gender")
-        gender_data = demographics_data.groupby("userGender")["activeUsers"].sum().reset_index()
-        fig = px.pie(gender_data, values="activeUsers", names="userGender", title="Active Users by Gender")
-        st.plotly_chart(fig, use_container_width=True)
-
-        # Group by country
-        st.subheader("Active Users by Country")
-        country_data = demographics_data.groupby("country")["activeUsers"].sum().reset_index()
-        fig = px.choropleth(
-            country_data,
-            locations="country",  # Column with country names
-            locationmode="country names",  # Use country names for mapping
-            color="activeUsers",  # Column to determine color intensity
-            hover_name="country",  # Column to display on hover
-            title="Active Users by Country"
-        )
-        st.plotly_chart(fig, use_container_width=True)
-    else:
+    st.title("👥 User Demographics & Acquisition")
+    st.markdown("This page shows user demographics and acquisition patterns.")
+    
+    if demographics_data is None or demographics_data.empty:
         st.warning("No demographics data available.")
+        return
+
+    # Check which columns exist
+    available_cols = demographics_data.columns.tolist()
+    
+    # 1. Geographic Analysis
+    st.header("🌍 Geographic Distribution")
+    
+    if "country" in available_cols:
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("Top Countries by Active Users")
+            country_data = demographics_data.groupby("country")["activeUsers"].sum().nlargest(10).reset_index()
+            fig = px.bar(country_data, x="country", y="activeUsers", 
+                         color="activeUsers", title="Top 10 Countries")
+            st.plotly_chart(fig, use_container_width=True)
+            
+        with col2:
+            st.subheader("User Distribution by Country")
+            country_total = demographics_data.groupby("country")["activeUsers"].sum().reset_index()
+            fig = px.choropleth(
+                country_total,
+                locations="country",
+                locationmode="country names",
+                color="activeUsers",
+                hover_name="country",
+                title="Global User Distribution"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+            
+        if "city" in available_cols:
+            st.subheader("Top Cities by Active Users")
+            city_data = demographics_data.groupby(["country", "city"])["activeUsers"].sum().nlargest(15).reset_index()
+            city_data["location"] = city_data["city"] + ", " + city_data["country"]
+            fig = px.bar(city_data, x="location", y="activeUsers", 
+                         title="Top 15 Cities", color="activeUsers")
+            st.plotly_chart(fig, use_container_width=True)
+    
+    # 2. Acquisition Analysis
+    st.header("📈 Acquisition Channels")
+    
+    if "firstUserSourceMedium" in available_cols:
+        # Extract source and medium if in format "source / medium"
+        if demographics_data["firstUserSourceMedium"].str.contains("/").any():
+            demographics_data[["source", "medium"]] = demographics_data["firstUserSourceMedium"].str.split("/", expand=True)
+            demographics_data["source"] = demographics_data["source"].str.strip()
+            demographics_data["medium"] = demographics_data["medium"].str.strip()
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.subheader("Top Traffic Sources")
+                source_data = demographics_data.groupby("source")["activeUsers"].sum().nlargest(10).reset_index()
+                fig = px.pie(source_data, values="activeUsers", names="source", 
+                             title="User Acquisition by Source")
+                st.plotly_chart(fig, use_container_width=True)
+                
+            with col2:
+                st.subheader("Acquisition Mediums")
+                medium_data = demographics_data.groupby("medium")["activeUsers"].sum().reset_index()
+                fig = px.bar(medium_data, x="medium", y="activeUsers", 
+                             color="activeUsers", title="User Acquisition by Medium")
+                st.plotly_chart(fig, use_container_width=True)
+                
+            # Time-based acquisition trends
+            if "date" in available_cols:
+                st.subheader("Acquisition Trends Over Time")
+                time_data = demographics_data.groupby(["date", "source"])["activeUsers"].sum().reset_index()
+                fig = px.line(time_data, x="date", y="activeUsers", color="source",
+                              title="Daily User Acquisition by Source")
+                st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.subheader("Acquisition Channels")
+            source_data = demographics_data.groupby("firstUserSourceMedium")["activeUsers"].sum().nlargest(15).reset_index()
+            fig = px.bar(source_data, x="firstUserSourceMedium", y="activeUsers",
+                         title="Top 15 Acquisition Channels", color="activeUsers")
+            st.plotly_chart(fig, use_container_width=True)
+    
+    # 3. Time-Based Analysis
+    st.header("⏱ Time-Based Patterns")
+    
+    if "date" in available_cols:
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("Daily Active Users")
+            daily_users = demographics_data.groupby("date")["activeUsers"].sum().reset_index()
+            fig = px.line(daily_users, x="date", y="activeUsers", 
+                          title="Daily Active Users Trend")
+            st.plotly_chart(fig, use_container_width=True)
+            
+        with col2:
+            st.subheader("Weekly Pattern")
+            demographics_data["day_of_week"] = pd.to_datetime(demographics_data["date"]).dt.day_name()
+            weekly_pattern = demographics_data.groupby("day_of_week")["activeUsers"].sum().reset_index()
+            fig = px.bar(weekly_pattern, x="day_of_week", y="activeUsers",
+                         category_orders={"day_of_week": ["Monday", "Tuesday", "Wednesday", 
+                                                         "Thursday", "Friday", "Saturday", "Sunday"]},
+                         title="Active Users by Day of Week")
+            st.plotly_chart(fig, use_container_width=True)
+    
+    # 4. Combined Geographic-Acquisition Analysis
+    if all(col in available_cols for col in ["country", "firstUserSourceMedium"]):
+        st.header("🌐 Geographic Acquisition Patterns")
+        
+        # Top sources by country
+        country_source = demographics_data.groupby(["country", "firstUserSourceMedium"])["activeUsers"].sum().reset_index()
+        top_country_source = country_source.loc[country_source.groupby("country")["activeUsers"].idxmax()]
+        
+        fig = px.bar(top_country_source, x="country", y="activeUsers", color="firstUserSourceMedium",
+                     title="Dominant Acquisition Channel by Country")
+        st.plotly_chart(fig, use_container_width=True)
 
 # Page 5: Device & Technology
 def page_device_technology(device_data):
     st.title("📱 Device & Technology")
     st.markdown("This page shows the breakdown of users by device and technology.")
-
-    if device_data is not None and not device_data.empty:
-        # Group by device category
-        st.subheader("Active Users by Device Category")
-        device_category_data = device_data.groupby("deviceCategory")["activeUsers"].sum().reset_index()
-        fig = px.bar(device_category_data, x="deviceCategory", y="activeUsers", title="Active Users by Device Category")
-        st.plotly_chart(fig, use_container_width=True)
-
-        # Group by operating system
-        st.subheader("Active Users by Operating System")
-        os_data = device_data.groupby("operatingSystem")["activeUsers"].sum().reset_index()
-        fig = px.pie(os_data, values="activeUsers", names="operatingSystem", title="Active Users by Operating System")
-        st.plotly_chart(fig, use_container_width=True)
-
-        # Group by browser
-        st.subheader("Active Users by Browser")
-        browser_data = device_data.groupby("browser")["activeUsers"].sum().reset_index()
-        fig = px.bar(browser_data, x="browser", y="activeUsers", title="Active Users by Browser")
+    
+    if device_data is None or device_data.empty:
+        st.warning("No device & technology data available.")
+        return
+    
+    # Check available columns
+    available_cols = device_data.columns.tolist()
+    # st.write("Available columns in device data:", available_cols)  # Debug output
+    
+    # Determine which metric column to use (fallback to first numeric column if activeUsers not found)
+    metric_col = "activeUsers" if "activeUsers" in available_cols else None
+    if not metric_col:
+        numeric_cols = device_data.select_dtypes(include=['number']).columns
+        metric_col = numeric_cols[0] if len(numeric_cols) > 0 else None
+    
+    if not metric_col:
+        st.error("No numeric columns found for analysis")
+        return
+    
+    st.subheader(f"User Distribution by {metric_col}")
+    
+    # 1. Device Category Analysis
+    if "deviceCategory" in available_cols:
+        st.subheader("By Device Category")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            device_category_data = device_data.groupby("deviceCategory")[metric_col].sum().reset_index()
+            fig = px.pie(device_category_data, values=metric_col, names="deviceCategory", 
+                         title=f"{metric_col} by Device Category")
+            st.plotly_chart(fig, use_container_width=True)
+            
+        with col2:
+            fig = px.bar(device_category_data, x="deviceCategory", y=metric_col,
+                         color="deviceCategory", title=f"{metric_col} by Device Category")
+            st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("⚠️ Device category data not available")
+    
+    # 2. Operating System Analysis
+    if "operatingSystem" in available_cols:
+        st.subheader("By Operating System")
+        os_data = device_data.groupby("operatingSystem")[metric_col].sum().nlargest(10).reset_index()
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            fig = px.bar(os_data, x="operatingSystem", y=metric_col,
+                         title=f"Top 10 OS by {metric_col}")
+            st.plotly_chart(fig, use_container_width=True)
+            
+        with col2:
+            fig = px.pie(os_data, values=metric_col, names="operatingSystem",
+                         title=f"{metric_col} Distribution by OS")
+            st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("⚠️ Operating system data not available")
+    
+    # 3. Browser Analysis
+    if "browser" in available_cols:
+        st.subheader("By Browser")
+        browser_data = device_data.groupby("browser")[metric_col].sum().nlargest(10).reset_index()
+        fig = px.bar(browser_data, x="browser", y=metric_col, color="browser",
+                     title=f"Top 10 Browsers by {metric_col}")
         st.plotly_chart(fig, use_container_width=True)
     else:
-        st.warning("No device & technology data available.")
+        st.warning("⚠️ Browser data not available")
+    
+    # 4. Combined Technology Analysis
+    if all(col in available_cols for col in ["operatingSystem", "browser"]):
+        st.subheader("OS & Browser Combinations")
+        combo_data = device_data.groupby(["operatingSystem", "browser"])[metric_col].sum().nlargest(15).reset_index()
+        combo_data["combo"] = combo_data["operatingSystem"] + " + " + combo_data["browser"]
+        fig = px.bar(combo_data, x="combo", y=metric_col, color="operatingSystem",
+                     title=f"Top 15 OS+Browser Combos by {metric_col}")
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # 5. Time Trends (if date column exists)
+    if "date" in available_cols:
+        st.subheader("Technology Trends Over Time")
+        time_data = device_data.groupby(["date", "deviceCategory"])[metric_col].sum().reset_index()
+        fig = px.line(time_data, x="date", y=metric_col, color="deviceCategory",
+                      title=f"{metric_col} Trends by Device Category")
+        st.plotly_chart(fig, use_container_width=True)
 
 # Page 6: Events
 def page_events(events_data):
-    st.title("🎯 Events")
-    st.markdown("This page shows the breakdown of events triggered by users.")
-
-    if events_data is not None and not events_data.empty:
-        # Group by event name
-        st.subheader("Event Count by Event Name")
-        event_count_data = events_data.groupby("eventName")["eventCount"].sum().reset_index()
-        fig = px.bar(event_count_data, x="eventName", y="eventCount", title="Event Count by Event Name")
-        st.plotly_chart(fig, use_container_width=True)
-    else:
+    st.title("🎯 User Events Analysis")
+    st.markdown("This page provides comprehensive insights into user events and interactions.")
+    
+    if events_data is None or events_data.empty:
         st.warning("No events data available.")
+        return
+
+    # Check available columns
+    available_cols = events_data.columns.tolist()
+    
+    # 1. Event Overview Metrics
+    st.header("📊 Event Overview")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        total_events = events_data["eventCount"].sum()
+        display_metric("Total Events Recorded", f"{total_events:,}", 0)
+    
+    with col2:
+        unique_events = events_data["eventName"].nunique()
+        display_metric("Unique Event Types", unique_events, 0)
+    
+    with col3:
+        avg_per_event = total_events / unique_events if unique_events > 0 else 0
+        display_metric("Avg. Triggers per Event", f"{avg_per_event:,.1f}", 0)
+
+    # 2. Main Event Visualization
+    st.header("📈 Event Distribution")
+    
+    # Group by event name and calculate percentages
+    event_count_data = events_data.groupby("eventName")["eventCount"].sum().reset_index()
+    event_count_data["percentage"] = (event_count_data["eventCount"] / total_events) * 100
+    
+    tab1, tab2, tab3 = st.tabs(["Bar Chart", "Pie Chart", "Data Table"])
+    
+    with tab1:
+        fig = px.bar(event_count_data.sort_values("eventCount", ascending=False), 
+                    x="eventName", y="eventCount", 
+                    color="eventCount",
+                    title="Event Count by Event Name",
+                    labels={"eventCount": "Total Triggers", "eventName": "Event Name"})
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with tab2:
+        fig = px.pie(event_count_data, values="eventCount", names="eventName",
+                    title="Event Distribution by Percentage",
+                    hover_data=["percentage"])
+        fig.update_traces(textposition='inside', textinfo='percent+label')
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with tab3:
+        st.dataframe(event_count_data.sort_values("eventCount", ascending=False))
+    
+    # 3. Time-Based Analysis (if date column exists)
+    if "date" in available_cols:
+        st.header("⏱ Event Trends Over Time")
+        
+        # Convert date to datetime if it's not already
+        events_data["date"] = pd.to_datetime(events_data["date"])
+        
+        # Calculate week-over-week change for delta values
+        events_data["week"] = events_data["date"].dt.to_period('W')
+        weekly_events = events_data.groupby("week")["eventCount"].sum().reset_index()
+        weekly_events["pct_change"] = weekly_events["eventCount"].pct_change() * 100
+        
+        # Get the latest week's data safely
+        current_week_data = weekly_events.iloc[-1] if len(weekly_events) > 0 else None
+        
+        # Daily event trends
+        daily_events = events_data.groupby("date")["eventCount"].sum().reset_index()
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Safely handle current_week_data
+            if current_week_data is not None:
+                delta_value = current_week_data["pct_change"]
+                current_week_count = current_week_data["eventCount"]
+            else:
+                delta_value = 0
+                current_week_count = "N/A"
+            
+            display_metric("Weekly Event Volume", 
+                         f"{current_week_count:,}" if current_week_data is not None else "N/A", 
+                         delta_value)
+            
+            fig = px.line(daily_events, x="date", y="eventCount",
+                         title="Daily Event Volume Trend")
+            st.plotly_chart(fig, use_container_width=True)
+        
+        with col2:
+            # Weekly pattern
+            events_data["day_of_week"] = events_data["date"].dt.day_name()
+            weekly_pattern = events_data.groupby("day_of_week")["eventCount"].sum().reset_index()
+            
+            # Calculate day-over-day change
+            day_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+            weekly_pattern = weekly_pattern.set_index("day_of_week").loc[day_order].reset_index()
+            weekly_pattern["pct_change"] = weekly_pattern["eventCount"].pct_change() * 100
+            
+            fig = px.bar(weekly_pattern, x="day_of_week", y="eventCount",
+                         category_orders={"day_of_week": day_order},
+                         title="Events by Day of Week")
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # Top events over time with deltas
+        st.subheader("Top Events Over Time")
+        top_events_over_time = events_data.groupby(["date", "eventName"])["eventCount"].sum().reset_index()
+        top_5_events = event_count_data.nlargest(5, "eventCount")["eventName"].tolist()
+        filtered_events = top_events_over_time[top_events_over_time["eventName"].isin(top_5_events)]
+        
+        # Calculate deltas for top events
+        event_deltas = []
+        for event in top_5_events:
+            event_data = filtered_events[filtered_events["eventName"] == event]
+            if len(event_data) > 1:
+                delta = (event_data.iloc[-1]["eventCount"] - event_data.iloc[-2]["eventCount"]) / event_data.iloc[-2]["eventCount"] * 100
+            else:
+                delta = 0
+            event_deltas.append(delta)
+        
+        # Display top events metrics
+        cols = st.columns(len(top_5_events))
+        for i, (event, delta) in enumerate(zip(top_5_events, event_deltas)):
+            event_count = event_count_data[event_count_data["eventName"] == event]["eventCount"].values[0]
+            with cols[i]:
+                display_metric(f"{event}", f"{event_count:,}", delta)
+        
+        fig = px.line(filtered_events, x="date", y="eventCount", color="eventName",
+                     title="Trend of Top 5 Events Over Time")
+        st.plotly_chart(fig, use_container_width=True)
+
 
 # Page 7: E-commerce
 def page_ecommerce(ecommerce_data):
@@ -475,48 +964,248 @@ def page_ecommerce(ecommerce_data):
         st.warning("No e-commerce data available.")
 
 # Page 8: User Lifetime Value (LTV)
-def page_ltv(ltv_data):
-    st.title("💰 User Lifetime Value (LTV)")
-    st.markdown("This page shows the lifetime value of users.")
-
+def page_ltv(ltv_data=None):
+    st.title("💰 Customer Lifetime Value Analysis")
+    
+    # Check if we have direct LTV data
     if ltv_data is not None and not ltv_data.empty:
-        # Group by lifetime bucket
-        st.subheader("Lifetime Revenue by User Bucket")
-        ltv_revenue_data = ltv_data.groupby("userLifetimeBucket")["userLifetimeRevenue"].sum().reset_index()
-        fig = px.bar(ltv_revenue_data, x="userLifetimeBucket", y="userLifetimeRevenue", title="Lifetime Revenue by User Bucket")
-        st.plotly_chart(fig, use_container_width=True)
+        return analyze_ltv_data(ltv_data)
+    
+    # If no LTV data, try to derive from session state
+    st.warning("No direct LTV data available. Attempting to derive from available data...")
+    
+    # Try to get required data from session state
+    acquisition_data = st.session_state.get('acquisition_data')
+    conversion_data = st.session_state.get('conversion_data')
+    
+    if acquisition_data is not None and conversion_data is not None:
+        derived_ltv = derive_ltv_from_available_data(acquisition_data, conversion_data)
+        if derived_ltv is not None:
+            return analyze_derived_ltv(derived_ltv)
+    
+    # If we get here, no data was available
+    show_ltv_help_instructions()
+    show_sample_ltv_analysis()
 
-        # Group by lifetime transactions
-        st.subheader("Lifetime Transactions by User Bucket")
-        ltv_transactions_data = ltv_data.groupby("userLifetimeBucket")["userLifetimeTransactions"].sum().reset_index()
-        fig = px.bar(ltv_transactions_data, x="userLifetimeBucket", y="userLifetimeTransactions", title="Lifetime Transactions by User Bucket")
+def show_ltv_help_instructions():
+    st.error("""
+    Unable to calculate LTV. You need one of these data sources:
+    
+    1. **Direct LTV Data** (preferred):
+       - Worksheet named "LTV" with columns:
+         - `user_id`, `user_lifetime_revenue`, `user_lifetime_transactions`, `date`
+    
+    2. **Derived from Analytics**:
+       - Acquisition data (userId, firstUserSource, date)
+       - Conversion data (userId, purchaseRevenue, transactions)
+    """)
+    
+    st.markdown("""
+    ### How to enable LTV tracking:
+    1. **For direct LTV**:
+       - Create an "LTV" worksheet in your Google Sheet
+       - Include user revenue and transaction history
+    
+    2. **For derived LTV**:
+       - Ensure your GA4 data includes:
+         - User IDs (enable userId tracking)
+         - Purchase revenue data
+         - Acquisition sources
+    """)
+
+def show_sample_ltv_analysis():
+    if st.checkbox("Show sample LTV analysis for demonstration"):
+        st.info("Displaying sample data for demonstration purposes")
+        
+        # Generate sample data
+        sample_size = 1000
+        np.random.seed(42)
+        
+        sample_ltv = pd.DataFrame({
+            'user_id': [f'user_{i}' for i in range(sample_size)],
+            'user_lifetime_revenue': np.random.lognormal(3, 1, sample_size).round(2),
+            'user_lifetime_transactions': np.random.poisson(3, sample_size),
+            'date': pd.date_range('2025-02-10', periods=sample_size).strftime('%Y-%m-%d'),
+            'acquisition_source': np.random.choice(['google', 'facebook', 'direct', 'organic'], sample_size),
+            'acquisition_medium': np.random.choice(['cpc', 'organic', 'referral', 'email'], sample_size)
+        })
+        
+        # Create buckets
+        conditions = [
+            (sample_ltv['user_lifetime_revenue'] > 100),
+            (sample_ltv['user_lifetime_revenue'] > 50),
+            (sample_ltv['user_lifetime_revenue'] > 0),
+            (sample_ltv['user_lifetime_revenue'] == 0)
+        ]
+        choices = ['high', 'medium', 'low', 'none']
+        sample_ltv['ltv_bucket'] = np.select(conditions, choices, default='none')
+        
+        analyze_ltv_data(sample_ltv)
+
+def derive_ltv_from_available_data(acquisition_data, conversion_data):
+    """Create LTV metrics from available GA4 data"""
+    try:
+        # Check for required columns
+        required_acq = ['userId', 'firstUserSource', 'firstUserMedium', 'date']
+        required_conv = ['userId', 'purchaseRevenue', 'transactions']
+        
+        if not all(col in acquisition_data.columns for col in required_acq):
+            st.warning("Acquisition data missing required columns")
+            return None
+            
+        if not all(col in conversion_data.columns for col in required_conv):
+            st.warning("Conversion data missing required columns")
+            return None
+        
+        # Merge and calculate
+        ltv_data = pd.merge(
+            acquisition_data[required_acq],
+            conversion_data.groupby('userId')[required_conv[1:]].sum().reset_index(),
+            on='userId',
+            how='left'
+        ).fillna(0)
+        
+        # Rename columns to standard format
+        ltv_data = ltv_data.rename(columns={
+            'userId': 'user_id',
+            'purchaseRevenue': 'user_lifetime_revenue',
+            'transactions': 'user_lifetime_transactions',
+            'firstUserSource': 'acquisition_source',
+            'firstUserMedium': 'acquisition_medium'
+        })
+        
+        return ltv_data
+        
+    except Exception as e:
+        st.error(f"Error deriving LTV: {str(e)}")
+        return None
+
+def analyze_ltv_data(ltv_data):
+    """Main analysis function for LTV data"""
+    st.success("LTV data loaded successfully!")
+    
+    # Standardize column names
+    ltv_data.columns = ltv_data.columns.str.lower().str.replace(' ', '_')
+    
+    # 1. Key Metrics
+    st.header("📊 Key Metrics")
+    cols = st.columns(4)
+    metrics = [
+        ('Average LTV', 'user_lifetime_revenue', 'mean', '${:,.2f}'),
+        ('Median LTV', 'user_lifetime_revenue', 'median', '${:,.2f}'),
+        ('Paying Users', 'user_lifetime_revenue', lambda x: (x > 0).mean() * 100, '{:.1f}%'),
+        ('Avg Transactions', 'user_lifetime_transactions', 'mean', '{:.1f}')
+    ]
+    
+    for col, (label, col_name, agg_func, fmt) in zip(cols, metrics):
+        if col_name in ltv_data.columns:
+            value = ltv_data[col_name].agg(agg_func)
+            col.metric(label, fmt.format(value))
+    
+    # 2. Distribution Analysis
+    st.header("📈 Distribution Analysis")
+    if 'user_lifetime_revenue' in ltv_data.columns:
+        fig = px.histogram(ltv_data, x='user_lifetime_revenue', nbins=50,
+                          title='LTV Value Distribution')
         st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.warning("No LTV data available.")
+    
+    # 3. Cohort Analysis
+    if 'date' in ltv_data.columns:
+        st.header("🕰️ Cohort Analysis")
+        ltv_data['cohort'] = pd.to_datetime(ltv_data['date']).dt.to_period('M')
+        cohort_data = ltv_data.groupby('cohort').agg({
+            'user_lifetime_revenue': ['mean', 'median', 'count'],
+            'user_id': 'nunique'
+        }).reset_index()
+        
+        # Flatten multi-index columns
+        cohort_data.columns = ['_'.join(col).strip() if col[1] else col[0] 
+                             for col in cohort_data.columns.values]
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            fig = px.line(cohort_data, x='cohort', y='user_lifetime_revenue_mean',
+                         title='Average LTV by Cohort')
+            st.plotly_chart(fig, use_container_width=True)
+        
+        with col2:
+            fig = px.bar(cohort_data, x='cohort', y='user_id_nunique',
+                        title='Users by Cohort')
+            st.plotly_chart(fig, use_container_width=True)
+    
+    # 4. Acquisition Analysis
+    if all(col in ltv_data.columns for col in ['acquisition_source', 'user_lifetime_revenue']):
+        st.header("📡 Acquisition Performance")
+        source_data = ltv_data.groupby('acquisition_source').agg({
+            'user_lifetime_revenue': ['mean', 'count'],
+            'user_lifetime_transactions': 'mean'
+        }).reset_index()
+        
+        source_data.columns = ['source', 'avg_ltv', 'users', 'avg_transactions']
+        
+        tab1, tab2 = st.tabs(["By LTV", "By Volume"])
+        with tab1:
+            fig = px.bar(source_data.sort_values('avg_ltv', ascending=False),
+                        x='source', y='avg_ltv',
+                        title='Average LTV by Acquisition Source')
+            st.plotly_chart(fig, use_container_width=True)
+        
+        with tab2:
+            fig = px.pie(source_data, values='users', names='source',
+                        title='User Acquisition Distribution')
+            st.plotly_chart(fig, use_container_width=True)
 
 # Page 9: Audience & Segments
 def page_audience(audience_data):
     st.title("👥 Audience & Segments")
-    st.markdown("This page shows the performance of audience segments.")
-
-    if audience_data is not None and not audience_data.empty:
-        # Check if 'audienceName' column exists
-        if "audienceName" in audience_data.columns:
-            # Group by audience name
-            st.subheader("Active Users by Audience")
-            audience_users_data = audience_data.groupby("audienceName")["activeUsers"].sum().reset_index()
-            fig = px.bar(audience_users_data, x="audienceName", y="activeUsers", title="Active Users by Audience")
-            st.plotly_chart(fig, use_container_width=True)
-
-            # Group by conversions
-            st.subheader("Conversions by Audience")
-            audience_conversions_data = audience_data.groupby("audienceName")["conversions"].sum().reset_index()
-            fig = px.pie(audience_conversions_data, values="conversions", names="audienceName", title="Conversions by Audience")
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.warning("The 'audienceName' column is missing in the audience data.")
-    else:
-        st.warning("No audience & segments data available.")
+    
+    # Handle empty data case more gracefully
+    if audience_data is None or audience_data.empty:
+        st.warning("""
+        No audience data available. This could be because:
+        - The worksheet is missing from your Google Sheet
+        - The worksheet is empty
+        - Required columns are missing
+        """)
+        
+        st.subheader("Expected Data Format")
+        st.dataframe(pd.DataFrame({
+            'audienceName': ['Returning Visitors', 'Mobile Users'],
+            'activeUsers': [1500, 800],
+            'conversions': [150, 80]
+        }))
+        return
+    
+    # Ensure we have required columns
+    required_cols = ['audienceName', 'activeUsers']
+    missing_cols = [col for col in required_cols if col not in audience_data.columns]
+    
+    if missing_cols:
+        st.error(f"Missing required columns: {', '.join(missing_cols)}")
+        return
+    
+    # Main analysis
+    st.header("Audience Performance")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Total Audiences", audience_data['audienceName'].nunique())
+    
+    with col2:
+        st.metric("Total Active Users", audience_data['activeUsers'].sum())
+    
+    st.subheader("Top Audiences by Active Users")
+    top_audiences = audience_data.sort_values('activeUsers', ascending=False).head(10)
+    fig = px.bar(top_audiences, x='audienceName', y='activeUsers')
+    st.plotly_chart(fig, use_container_width=True)
+    
+    if 'conversions' in audience_data.columns:
+        st.subheader("Conversion Rates")
+        audience_data['conversion_rate'] = (audience_data['conversions'] / audience_data['activeUsers']) * 100
+        fig = px.bar(audience_data.sort_values('conversion_rate', ascending=False),
+                    x='audienceName', y='conversion_rate',
+                    labels={'conversion_rate': 'Conversion Rate (%)'})
+        st.plotly_chart(fig, use_container_width=True)
 
 # Page 10: App-Specific Data
 def page_app(app_data):
@@ -1219,37 +1908,237 @@ def load_data(filename):
         print(f"Error loading data from {filename}: {e}")
         return None
 
+def get_worksheet_data(all_data, worksheet_name, alternative_names=None):
+    """
+    Flexible worksheet lookup with alternative name options
+    """
+    if not alternative_names:
+        alternative_names = []
+    
+    # Check primary name first
+    if worksheet_name in all_data:
+        return all_data[worksheet_name]
+    
+    # Check alternative names
+    for name in alternative_names:
+        if name in all_data:
+            return all_data[name]
+    
+    # If not found, try case-insensitive match
+    lower_name = worksheet_name.lower()
+    for key in all_data.keys():
+        if key.lower() == lower_name:
+            return all_data[key]
+    
+    return None
+
+def validate_worksheet(df, worksheet_name, required_columns=None):
+    """
+    Validate worksheet data and columns
+    """
+    if df is None:
+        st.error(f"❌ Worksheet '{worksheet_name}' not found in the spreadsheet")
+        return False
+    
+    if required_columns:
+        missing = [col for col in required_columns if col not in df.columns]
+        if missing:
+            st.error(f"❌ Worksheet '{worksheet_name}' is missing required columns: {', '.join(missing)}")
+            return False
+    
+    if df.empty:
+        st.warning(f"⚠️ Worksheet '{worksheet_name}' is empty")
+        return False
+    
+    return True
+
+
 # Main function for the dashboard
 def main():
-    # Load data
-    user_traffic_data = load_data("analytics_data/user_traffic_data.csv")
-    engagement_data = load_data("analytics_data/engagement_data.csv")
-    acquisition_data = load_data("analytics_data/acquisition_data.csv")
-    conversion_data = load_data("analytics_data/conversion_data.csv")
-    page_views_data = load_data("analytics_data/page_views_data.csv")
-    demographics_data = load_data("analytics_data/demographics_data.csv")
-    device_data = load_data("analytics_data/device_data.csv")
-    events_data = load_data("analytics_data/events_data.csv")
-    ecommerce_data = load_data("analytics_data/ecommerce_data.csv")
-    ltv_data = load_data("analytics_data/ltv_data.csv")
-    audience_data = load_data("analytics_data/audience_data.csv")
-    app_data = load_data("analytics_data/app_data.csv")
-    funnel_data = load_data("analytics_data/funnel_data.csv")
-    retention_data = load_data("analytics_data/retention_data.csv")
-    site_speed_data = load_data("analytics_data/site_speed_data.csv")
-    error_data = load_data("analytics_data/error_data.csv")
-    search_console_data = load_data("analytics_data/search_console_data.csv")
-    search_console_data = load_data('analytics_data/search_console_data.csv')
-    ga4_data = load_data('analytics_data/ga4_data.csv')
-    seo_data = load_data('analytics_data/seo_data.csv')
+    # Your Google Sheet configuration
+    SHEET_URL = "https://docs.google.com/spreadsheets/d/17gv72J54TDcW9wSAtG0cKGXty0zxfgeKZVLEp65bYcc/edit#gid=1065654865"
     
-    # Load social media data
-    linkedin_metrics, linkedin_posts = load_linkedin_excel_data("social_media_data/pro-efficient-data-entry_content_1742193384396.xlsx")
-    facebook_data = load_facebook_data("social_media_data/Feb-01-2025_Mar-15-2025_613168031534769.csv")
-    instagram_data = load_instagram_data("social_media_data/Feb-01-2025_Mar-15-2025_613168031534769.csv")
-    youtube_data = load_social_media_data("social_media_data/youtube_data.xlsx")
-    x_data = load_social_media_data("social_media_data/x_data.xlsx")
+    # Connect to Google Sheets
+    gc = connect_to_google_sheets()
+    if not gc:
+        st.error("Failed to connect to Google Sheets")
+        return
+    
+    # Show loading status
+    with st.spinner("Loading data from Data Sources..."):
+        # Load all data
+        all_data = load_sheet_data(SHEET_URL)
+        
+        if not all_data:
+            st.error("Failed to load data from Google Sheets")
+            st.stop()
+              
+        # Debug: Show loaded worksheet names
+        if st.secrets.get("DEBUG", False):
+            st.write("Actual worksheet names:", list(all_data.keys()))
+        
+        # Load and validate each dataset
+        loaded_data = {}
+        for data_key, config in WORKSHEET_MAPPING.items():
+            worksheet_name = config["primary"]  # Get the actual worksheet name string
+            if worksheet_name in all_data:
+                df = all_data[worksheet_name]  # Directly access the worksheet
+                
+                # Validate required columns
+                missing_cols = [col for col in config.get("required_cols", []) 
+                              if col not in df.columns]
+                if missing_cols:
+                    # st.warning(f"⚠️ Worksheet '{worksheet_name}' is missing columns: {', '.join(missing_cols)}")
+                    # Create empty dataframe with required columns
+                    df = pd.DataFrame(columns=config.get("required_cols", ["date"]))
+                
+                loaded_data[data_key] = df
+            else:
+                st.warning(f"⚠️ Worksheet '{worksheet_name}' not found. Using placeholder data for {data_key}")
+                # Create empty dataframe with required columns
+                loaded_data[data_key] = pd.DataFrame(columns=config.get("required_cols", ["date"]))
+        
+        # Map to variables with your actual worksheet names
+        user_traffic_data = loaded_data["user_traffic"]
+        engagement_data = loaded_data["engagement"]
+        acquisition_data = loaded_data["acquisition"]
+        page_views_data = loaded_data["page_views"]
+        demographics_data = loaded_data["demographics"]
+        device_data = loaded_data["device"]  # Using "technology" worksheet
+        events_data = loaded_data["events"]
+        site_speed_data = loaded_data["site_speed"]
+        search_console_data = loaded_data["search_console"]  # Using "seo_top_queries"
+        seo_pages_data = loaded_data["seo_pages"]  # Using "seo_top_pages"
+        seo_content_data = loaded_data["seo_content"]  # Using "seo_content_engagement"
+        organic_search_data = loaded_data["organic_search"]
+        landing_pages_data = loaded_data["landing_pages"]  # Using "seo_landing_pages"
+        
+        # For worksheets that don't exist in your sheet but are referenced in code
+        conversion_data = pd.DataFrame(columns=["date", "conversions", "totalRevenue"])
+        ecommerce_data = pd.DataFrame(columns=["date", "productName", "itemRevenue"])
+        ltv_data = pd.DataFrame(columns=["date", "userLifetimeBucket", "userLifetimeRevenue"])
+        audience_data = pd.DataFrame(columns=["audienceName", "activeUsers", "conversions"])
+        linkedin_posts = pd.DataFrame(columns=["Created date", "Post title", "Impressions"])
+        linkedin_metrics = pd.DataFrame(columns=["Date", "Impressions (total)", "Clicks (total)"])
+        facebook_data = pd.DataFrame(columns=["Publish time", "Title", "Reach"])
+        instagram_data = pd.DataFrame(columns=["Date", "Title", "Reach"])
+        youtube_data = pd.DataFrame(columns=["Date", "Title", "Views"])
+        x_data = pd.DataFrame(columns=["Date", "Tweet", "Impressions"])
+        ga4_data = pd.DataFrame(columns=["date", "sessions", "users"])
+        seo_data = pd.DataFrame(columns=["Date", "Keyword", "Position"])
+        
+        # Verify we got data
+        if not isinstance(all_data, dict) or len(all_data) == 0:
+            st.error("No data found in the spreadsheet")
+            st.stop()
+               
+        # Debug: Show loaded worksheet names
+        if st.secrets.get("DEBUG", False):
+            st.write("Loaded worksheets:", list(all_data.keys()))
+        
+        # Map to variables using proper worksheet names
+        user_traffic_data = get_worksheet_data(
+            all_data,
+            WORKSHEET_MAPPING["user_traffic"]["primary"],
+            WORKSHEET_MAPPING["user_traffic"]["alternatives"]
+        )
 
+        engagement_data = get_worksheet_data(
+            all_data,
+            WORKSHEET_MAPPING["engagement"]["primary"],
+            WORKSHEET_MAPPING["engagement"]["alternatives"]
+        )
+
+        acquisition_data = get_worksheet_data(
+            all_data,
+            WORKSHEET_MAPPING["acquisition"]["primary"],
+            WORKSHEET_MAPPING["acquisition"]["alternatives"]
+        )
+
+        page_views_data = get_worksheet_data(
+            all_data,
+            WORKSHEET_MAPPING["page_views"]["primary"],
+            WORKSHEET_MAPPING["page_views"]["alternatives"]
+        )
+
+        demographics_data = get_worksheet_data(
+            all_data,
+            WORKSHEET_MAPPING["demographics"]["primary"],
+            WORKSHEET_MAPPING["demographics"]["alternatives"]
+        )
+
+        device_data = get_worksheet_data(
+            all_data,
+            WORKSHEET_MAPPING["device"]["primary"],
+            WORKSHEET_MAPPING["device"]["alternatives"]
+        )
+
+        events_data = get_worksheet_data(
+            all_data,
+            WORKSHEET_MAPPING["events"]["primary"],
+            WORKSHEET_MAPPING["events"]["alternatives"]
+        )
+
+        audience_data = get_worksheet_data(
+            all_data,
+            WORKSHEET_MAPPING["audience"]["primary"],
+            WORKSHEET_MAPPING["audience"]["alternatives"]
+        )
+
+        site_speed_data = get_worksheet_data(
+            all_data,
+            WORKSHEET_MAPPING["site_speed"]["primary"],
+            WORKSHEET_MAPPING["site_speed"]["alternatives"]
+        )
+
+        search_console_data = get_worksheet_data(
+            all_data,
+            WORKSHEET_MAPPING["search_console"]["primary"],
+            WORKSHEET_MAPPING["search_console"]["alternatives"]
+        )
+
+        seo_pages_data = get_worksheet_data(
+            all_data,
+            WORKSHEET_MAPPING["seo_pages"]["primary"],
+            WORKSHEET_MAPPING["seo_pages"]["alternatives"]
+        )
+
+        seo_content_data = get_worksheet_data(
+            all_data,
+            WORKSHEET_MAPPING["seo_content"]["primary"],
+            WORKSHEET_MAPPING["seo_content"]["alternatives"]
+        )
+
+        organic_search_data = get_worksheet_data(
+            all_data,
+            WORKSHEET_MAPPING["organic_search"]["primary"],
+            WORKSHEET_MAPPING["organic_search"]["alternatives"]
+        )
+
+        landing_pages_data = get_worksheet_data(
+            all_data,
+            WORKSHEET_MAPPING["landing_pages"]["primary"],
+            WORKSHEET_MAPPING["landing_pages"]["alternatives"]
+        )
+
+        # For worksheets that don't exist in your sheet but are referenced in code
+        conversion_data = pd.DataFrame(columns=["date", "conversions", "totalRevenue"])
+        ecommerce_data = pd.DataFrame(columns=["date", "productName", "itemRevenue"])
+        ltv_data = pd.DataFrame(columns=["date", "userLifetimeBucket", "userLifetimeRevenue"])
+        linkedin_posts = pd.DataFrame(columns=["Created date", "Post title", "Impressions"])
+        linkedin_metrics = pd.DataFrame(columns=["Date", "Impressions (total)", "Clicks (total)"])
+        facebook_data = pd.DataFrame(columns=["Publish time", "Title", "Reach"])
+        instagram_data = pd.DataFrame(columns=["Date", "Title", "Reach"])
+        youtube_data = pd.DataFrame(columns=["Date", "Title", "Views"])
+        x_data = pd.DataFrame(columns=["Date", "Tweet", "Impressions"])
+        ga4_data = pd.DataFrame(columns=["date", "sessions", "users"])
+        seo_data = pd.DataFrame(columns=["Date", "Keyword", "Position"])
+        
+        # Verify critical data is loaded
+        if user_traffic_data is None:
+            st.error(f"Worksheet '{WORKSHEET_MAPPING['user_traffic']}' not found")
+            st.stop()
+    
     # Sidebar for navigation
     st.sidebar.title("Navigation")
     
@@ -1364,8 +2253,9 @@ def main():
     # Add a refresh button in the sidebar
     if st.sidebar.button("🔄 Refresh Data"):
         st.cache_data.clear()  # Clear cached data to force a refresh
-        refresh_data()  # Call the main function from data_extractor.py
-        st.rerun()  # Rerun the app to reflect the updated data
+        if refresh_data():  # Ensure this calls the updated function
+            st.rerun()
+
 
 
 if __name__ == "__main__":

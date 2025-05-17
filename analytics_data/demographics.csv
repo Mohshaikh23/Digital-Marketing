@@ -1,0 +1,177 @@
+date,country,city,region,language,activeUsers,engagedSessions
+2025-05-04,United States,(not set),(not set),English,7.0,0.0
+2025-05-01,India,Faridabad,Haryana,English,6.0,6.0
+2025-05-17,China,,,Chinese,6.0,0.0
+2025-04-12,India,Delhi,Delhi,English,4.0,4.0
+2025-04-20,India,New Delhi,Delhi,English,4.0,3.0
+2025-02-16,(not set),(not set),(not set),English,3.0,0.0
+2025-04-19,India,New Delhi,Delhi,English,3.0,4.0
+2025-05-03,(not set),(not set),(not set),English,3.0,3.0
+2025-05-04,Poland,(not set),Masovian Voivodeship,English,3.0,0.0
+2025-05-04,United States,Boardman,Oregon,English,3.0,0.0
+2025-05-04,United States,New York,New York,English,3.0,0.0
+2025-05-06,United States,(not set),(not set),English,3.0,0.0
+2025-02-20,India,New Delhi,Delhi,English,2.0,2.0
+2025-02-22,India,Pune,Maharashtra,English,2.0,2.0
+2025-03-01,United States,Appomattox,Virginia,English,2.0,0.0
+2025-03-05,India,Nagpur,Maharashtra,English,2.0,1.0
+2025-03-08,United States,Des Moines,Iowa,English,2.0,0.0
+2025-03-10,India,Faridabad,Haryana,English,2.0,2.0
+2025-03-26,United States,Des Moines,Iowa,English,2.0,0.0
+2025-03-29,India,Faridabad,Haryana,English,2.0,2.0
+2025-04-07,United States,Des Moines,Iowa,English,2.0,0.0
+2025-04-18,United States,Flint Hill,Virginia,English,2.0,1.0
+2025-04-19,India,Delhi,Delhi,English,2.0,2.0
+2025-04-20,India,Delhi,Delhi,English,2.0,0.0
+2025-04-24,India,New Delhi,Delhi,English,2.0,2.0
+2025-04-24,United States,Des Moines,Iowa,English,2.0,0.0
+2025-04-26,United States,(not set),Virginia,English,2.0,1.0
+2025-04-28,India,Delhi,Delhi,English,2.0,1.0
+2025-05-07,United States,Boydton,Virginia,English,2.0,0.0
+2025-05-08,India,Mumbai,Maharashtra,English,2.0,0.0
+2025-05-14,United States,Des Moines,Iowa,English,2.0,1.0
+2025-05-16,India,Durg,Chhattisgarh,English,2.0,2.0
+2025-05-16,United States,Flint Hill,Virginia,English,2.0,1.0
+2025-02-15,India,Ambernath,Maharashtra,English,1.0,1.0
+2025-02-16,India,Delhi,Delhi,English,1.0,1.0
+2025-02-17,United States,Forest City,North Carolina,English,1.0,1.0
+2025-02-17,United States,Prineville,Oregon,English,1.0,1.0
+2025-02-18,India,Faridabad,Haryana,English,1.0,1.0
+2025-02-18,India,Pune,Maharashtra,English,1.0,1.0
+2025-02-19,India,Faridabad,Haryana,English,1.0,1.0
+2025-02-20,China,Bayingolin Mongol Autonomous Prefecture,Xinjiang,English,1.0,0.0
+2025-02-20,India,Ambernath,Maharashtra,English,1.0,1.0
+2025-02-21,India,Delhi,Delhi,English,1.0,0.0
+2025-02-21,Ireland,Dublin,County Dublin,English,1.0,1.0
+2025-02-21,United States,Palm Beach Gardens,Florida,English,1.0,1.0
+2025-02-22,Germany,(not set),(not set),English,1.0,0.0
+2025-02-22,India,Delhi,Delhi,English,1.0,1.0
+2025-02-24,India,New Delhi,Delhi,English,1.0,1.0
+2025-02-25,India,Ambernath,Maharashtra,English,1.0,1.0
+2025-02-25,United States,Ashburn,Virginia,English,1.0,0.0
+2025-02-26,India,Delhi,Delhi,English,1.0,1.0
+2025-02-26,India,Gurugram,Haryana,English,1.0,1.0
+2025-02-27,India,Ambernath,Maharashtra,English,1.0,1.0
+2025-02-27,India,Delhi,Delhi,English,1.0,1.0
+2025-02-27,India,New Delhi,Delhi,English,1.0,1.0
+2025-02-28,India,Delhi,Delhi,English,1.0,2.0
+2025-03-01,United States,Prineville,Oregon,English,1.0,1.0
+2025-03-03,India,Delhi,Delhi,English,1.0,1.0
+2025-03-03,India,Faridabad,Haryana,English,1.0,1.0
+2025-03-03,India,Mumbai,Maharashtra,English,1.0,0.0
+2025-03-03,India,Nagpur,Maharashtra,English,1.0,0.0
+2025-03-04,India,Nagpur,Maharashtra,English,1.0,1.0
+2025-03-04,Sweden,Lulea,Norrbotten County,English,1.0,0.0
+2025-03-05,Poland,Warsaw,Masovian Voivodeship,English,1.0,0.0
+2025-03-05,United States,(not set),(not set),English,1.0,0.0
+2025-03-06,India,New Delhi,Delhi,English,1.0,2.0
+2025-03-08,India,Nashik,Maharashtra,English,1.0,1.0
+2025-03-08,India,New Delhi,Delhi,English,1.0,1.0
+2025-03-08,United States,Forest City,North Carolina,English,1.0,1.0
+2025-03-10,(not set),(not set),(not set),English,1.0,0.0
+2025-03-10,India,Delhi,Delhi,English,1.0,1.0
+2025-03-10,India,Mumbai,Maharashtra,English,1.0,0.0
+2025-03-11,India,Faridabad,Haryana,English,1.0,1.0
+2025-03-11,India,Mumbai,Maharashtra,English,1.0,0.0
+2025-03-11,Ireland,Dublin,County Dublin,English,1.0,1.0
+2025-03-12,India,Faridabad,Haryana,English,1.0,1.0
+2025-03-12,India,Nagpur,Maharashtra,English,1.0,1.0
+2025-03-12,India,New Delhi,Delhi,English,1.0,0.0
+2025-03-13,India,Faridabad,Haryana,English,1.0,1.0
+2025-03-15,India,Chennai,Tamil Nadu,English,1.0,0.0
+2025-03-15,India,New Delhi,Delhi,English,1.0,1.0
+2025-03-15,Sweden,Lulea,Norrbotten County,English,1.0,1.0
+2025-03-17,India,Mumbai,Maharashtra,English,1.0,1.0
+2025-03-18,Ireland,Dublin,County Dublin,English,1.0,0.0
+2025-03-18,Sweden,Lulea,Norrbotten County,English,1.0,0.0
+2025-03-19,India,Faridabad,Haryana,English,1.0,1.0
+2025-03-22,Ireland,Dublin,County Dublin,English,1.0,0.0
+2025-03-25,Ireland,Dublin,County Dublin,English,1.0,0.0
+2025-03-26,India,Panipat,Haryana,English,1.0,1.0
+2025-03-26,United States,Toledo,Ohio,English,1.0,0.0
+2025-03-27,India,New Delhi,Delhi,English,1.0,1.0
+2025-03-31,Sweden,Lulea,Norrbotten County,English,1.0,1.0
+2025-04-01,United States,Orlando,Florida,English,1.0,0.0
+2025-04-01,United States,West Palm Beach,Florida,English,1.0,0.0
+2025-04-02,India,Faridabad,Haryana,English,1.0,1.0
+2025-04-03,India,Nashik,Maharashtra,English,1.0,1.0
+2025-04-03,India,Satara,Maharashtra,English,1.0,1.0
+2025-04-03,Ireland,Dublin,County Dublin,English,1.0,1.0
+2025-04-03,United States,Prineville,Oregon,English,1.0,1.0
+2025-04-06,India,Delhi,Delhi,English,1.0,1.0
+2025-04-07,India,Ahmedabad,Gujarat,English,1.0,0.0
+2025-04-07,India,Mumbai,Maharashtra,English,1.0,1.0
+2025-04-07,India,Navi Mumbai,Maharashtra,English,1.0,1.0
+2025-04-07,India,Pune,Maharashtra,English,1.0,2.0
+2025-04-07,Ireland,Dublin,County Dublin,English,1.0,1.0
+2025-04-07,United States,Ashburn,Virginia,English,1.0,0.0
+2025-04-08,India,Delhi,Delhi,English,1.0,2.0
+2025-04-08,India,Navi Mumbai,Maharashtra,English,1.0,0.0
+2025-04-08,India,New Delhi,Delhi,English,1.0,2.0
+2025-04-08,India,Pune,Maharashtra,English,1.0,1.0
+2025-04-09,India,Delhi,Delhi,English,1.0,1.0
+2025-04-10,India,Faridabad,Haryana,English,1.0,1.0
+2025-04-10,India,Navi Mumbai,Maharashtra,English,1.0,0.0
+2025-04-10,United States,Forest City,North Carolina,English,1.0,1.0
+2025-04-12,India,Bengaluru,Karnataka,English,1.0,0.0
+2025-04-12,India,Faridabad,Haryana,English,1.0,1.0
+2025-04-12,India,Kolkata,West Bengal,English,1.0,0.0
+2025-04-12,India,Mumbai,Maharashtra,English,1.0,0.0
+2025-04-12,India,Pune,Maharashtra,English,1.0,1.0
+2025-04-13,China,(not set),(not set),Chinese,1.0,0.0
+2025-04-14,India,Navi Mumbai,Maharashtra,English,1.0,1.0
+2025-04-14,Ireland,Dublin,County Dublin,English,1.0,0.0
+2025-04-15,India,Bhimavaram,Andhra Pradesh,English,1.0,0.0
+2025-04-17,India,Bengaluru,Karnataka,English,1.0,1.0
+2025-04-18,China,(not set),(not set),Chinese,1.0,0.0
+2025-04-18,India,Pune,Maharashtra,English,1.0,1.0
+2025-04-18,United States,Prineville,Oregon,English,1.0,1.0
+2025-04-19,United States,Palm Beach Gardens,Florida,English,1.0,1.0
+2025-04-22,India,Pune,Maharashtra,English,1.0,1.0
+2025-04-23,India,Delhi,Delhi,English,1.0,1.0
+2025-04-23,United States,Forest City,North Carolina,English,1.0,1.0
+2025-04-24,China,(not set),(not set),Chinese,1.0,0.0
+2025-04-24,India,Pune,Maharashtra,English,1.0,1.0
+2025-04-25,India,Delhi,Delhi,English,1.0,1.0
+2025-04-25,Russia,Moscow,Moscow,English,1.0,0.0
+2025-04-26,United States,Pontiac,Michigan,English,1.0,1.0
+2025-04-28,Ireland,Dublin,County Dublin,English,1.0,0.0
+2025-04-29,India,Faridabad,Haryana,English,1.0,2.0
+2025-04-29,India,Kolkata,West Bengal,English,1.0,0.0
+2025-04-30,India,Delhi,Delhi,English,1.0,1.0
+2025-04-30,Kenya,Nairobi,Nairobi County,English,1.0,0.0
+2025-05-01,India,Bhiwandi,Maharashtra,English,1.0,1.0
+2025-05-01,India,Mumbai,Maharashtra,English,1.0,1.0
+2025-05-02,India,Delhi,Delhi,English,1.0,1.0
+2025-05-02,Ireland,Dublin,County Dublin,English,1.0,0.0
+2025-05-02,United States,Forest City,North Carolina,English,1.0,1.0
+2025-05-04,India,Faridabad,Haryana,English,1.0,1.0
+2025-05-04,New Zealand,Auckland,Auckland,English,1.0,0.0
+2025-05-04,United States,Antioch,California,English,1.0,0.0
+2025-05-05,Ireland,Dublin,County Dublin,English,1.0,0.0
+2025-05-05,Sweden,Lulea,Norrbotten County,English,1.0,0.0
+2025-05-06,India,Delhi,Delhi,English,1.0,1.0
+2025-05-06,United States,Prineville,Oregon,English,1.0,1.0
+2025-05-07,Sweden,Lulea,Norrbotten County,English,1.0,1.0
+2025-05-08,India,Thane,Maharashtra,English,1.0,1.0
+2025-05-08,Ireland,Dublin,County Dublin,English,1.0,0.0
+2025-05-09,India,Delhi,Delhi,English,1.0,1.0
+2025-05-09,Ireland,Dublin,County Dublin,English,1.0,0.0
+2025-05-09,Sweden,Lulea,Norrbotten County,English,1.0,1.0
+2025-05-09,United States,Forest City,North Carolina,English,1.0,1.0
+2025-05-10,India,Mumbai,Maharashtra,English,1.0,1.0
+2025-05-12,India,Bengaluru,Karnataka,English,1.0,1.0
+2025-05-13,United States,Fort Worth,Texas,English,1.0,0.0
+2025-05-14,India,Bengaluru,Karnataka,English,1.0,1.0
+2025-05-14,Sweden,Lulea,Norrbotten County,English,1.0,1.0
+2025-05-14,United Kingdom,Ringwood,England,English,1.0,1.0
+2025-05-14,United States,Altoona,Iowa,English,1.0,1.0
+2025-05-14,United States,Prineville,Oregon,English,1.0,1.0
+2025-05-15,India,Chhatrapati Sambhaji Nagar,Maharashtra,English,1.0,0.0
+2025-05-15,India,Kolhapur,Maharashtra,English,1.0,1.0
+2025-05-15,India,Noida,Uttar Pradesh,English,1.0,1.0
+2025-05-15,Ireland,Dublin,County Dublin,English,1.0,1.0
+2025-05-16,India,Beed,Maharashtra,English,1.0,0.0
+2025-05-16,India,Panipat,Haryana,English,1.0,0.0
+2025-05-16,India,Pune,Maharashtra,English,1.0,1.0
+2025-05-17,India,Chhatrapati Sambhaji Nagar,Maharashtra,English,1.0,1.0

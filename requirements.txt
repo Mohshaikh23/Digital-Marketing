@@ -24,9 +24,11 @@ google-auth-oauthlib==1.2.1
 googleapis-common-protos==1.69.1
 grpcio==1.71.0
 grpcio-status==1.71.0
+gspread==6.2.0
 httplib2==0.22.0
 idna==3.10
 Jinja2==3.1.6
+joblib==1.4.2
 jsonschema==4.23.0
 jsonschema-specifications==2024.10.1
 kiwisolver==1.4.8
@@ -38,6 +40,7 @@ oauthlib==3.2.2
 openpyxl==3.1.5
 packaging==24.2
 pandas==2.2.3
+patsy==1.0.1
 pillow==11.1.0
 plotly==6.0.0
 proto-plus==1.26.1
@@ -58,13 +61,17 @@ requests==2.32.3
 requests-oauthlib==2.0.0
 rpds-py==0.23.1
 rsa==4.9
+scikit-learn==1.6.1
 scipy==1.15.2
 seaborn==0.13.2
 six==1.17.0
 smmap==5.0.2
+statsmodels==0.14.4
 streamlit==1.43.2
 streamlit-calendar==1.2.1
+streamlit-option-menu==0.4.0
 tenacity==9.0.0
+threadpoolctl==3.6.0
 toml==0.10.2
 tornado==6.4.2
 typing_extensions==4.12.2
